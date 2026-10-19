@@ -1,5 +1,5 @@
 // Ajustes generales
-export const ADMIN="admin@tucorreo.com"; // CAMBIAR: correo del administrador (el mismo que en firestore.rules)
+export const ADMIN="elbrayan3922@gmail.com"; // CAMBIAR: correo del administrador (el mismo que en firestore.rules)
 export const TZ="America/El_Salvador";
 export const IVA=1.13;
 export const CAJERO="Stanley Martinez"; // Nombre fijo del cajero en las facturas
