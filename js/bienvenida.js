@@ -1,7 +1,7 @@
 /* Bienvenida: pantalla de presentación autónoma (estilos + marcado + lógica en un solo archivo).
    Uso: <script src="js/bienvenida.js"></script> justo debajo de <body>. No necesita nada más. */
 (function(){
-  var SIGLAS="LX",TITULO="Corp",RESALTE="LiteX",LEMA="Facturación · Inventario · Arqueo",DURACION=2800;
+  var SIGLAS="CLX",TITULO="Corp",RESALTE="LiteX",LEMA="Facturación · Inventario · Arqueo",DURACION=2800;
   try{if(sessionStorage.getItem("caja-intro")==="1")return}catch(e){} /* una vez por sesión */
   if(document.getElementById("intro"))return;
   var st=document.createElement("style");
