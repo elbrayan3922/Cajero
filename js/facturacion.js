@@ -50,7 +50,7 @@ function draft(){const t=tot(),iva=Math.round(t-t/IVA),method=$("pay").value,r=t
 function renderPreview(){
   if(document.activeElement&&document.activeElement.id==="cust")return;
   const issued=!!S.last&&!S.cart.length,d={...(issued?S.last:draft()),stamp:S.frozen||stampNow(),live:!S.frozen};
-  $("pvPaper").className="paper f"+S.fmt;$("pvPaper").innerHTML=ticketHTML(d,!issued,S.fmt);$("prn").disabled=!issued;$("dl").disabled=!issued}
+  $("pvPaper").className="paper f"+S.fmt;$("pvPaper").innerHTML=ticketHTML(d,!issued,S.fmt);$("prn").disabled=!issued;document.querySelectorAll("#dl,#dlImg").forEach(b=>b.disabled=!issued)}
 $("fmt").value=S.fmt;
 $("fmt").onchange=()=>{S.fmt=$("fmt").value;try{localStorage.setItem("caja-fmt",S.fmt)}catch{}renderPreview()};
 $("pvPaper").oninput=e=>{if(e.target.id==="cust")S.cust=e.target.value};
@@ -65,21 +65,26 @@ setInterval(()=>{const e=$("tkTime");if(e&&!S.frozen)e.textContent=stampNow()},1
 const H2C="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js",JSPDF="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
 const MM={"80":{pw:80,mg:4,w:72},"58":{pw:58,mg:4,w:50},"mc":{pw:139.7,ph:215.9,mg:8,w:123.7},"carta":{pw:215.9,ph:279.4,mg:12,w:191.9},"a4":{pw:210,ph:297,mg:12,w:186}};
 const loadJS=(src,ok)=>new Promise((res,rej)=>{if(ok())return res();const s=document.createElement("script");s.src=src;s.onload=res;s.onerror=()=>rej(new Error("No cargó "+src));document.head.appendChild(s)});
-$("dl").onclick=async()=>{
+const setDl=v=>document.querySelectorAll("#dl,#dlImg").forEach(b=>b.disabled=v);
+async function exportar(modo){ // "pdf" o "png"
   if(!S.last)return;
-  S.frozen=S.frozen||stampNow();renderPreview();$("dl").disabled=true;say("pm","Generando PDF...",1);
+  S.frozen=S.frozen||stampNow();renderPreview();setDl(true);say("pm",modo==="pdf"?"Generando PDF...":"Generando imagen...",1);
   let box=null;
   try{
-    await loadJS(H2C,()=>window.html2canvas);await loadJS(JSPDF,()=>window.jspdf);
+    await loadJS(H2C,()=>window.html2canvas);if(modo==="pdf")await loadJS(JSPDF,()=>window.jspdf);
     const m=MM[S.fmt];
     box=document.createElement("div");box.id="pdfBox";box.style.cssText=`position:fixed;left:-10000px;top:0;width:${Math.round(m.w*3.78)}px;background:#fff`;
     box.innerHTML=`<div class="paper f${S.fmt}" style="max-width:none;width:100%;padding:0;margin:0;border-radius:0;box-shadow:none">${ticketHTML({...S.last,stamp:S.frozen,live:false},false,S.fmt)}</div>`;
     document.body.appendChild(box);
-    const cv=await window.html2canvas(box,{scale:3,backgroundColor:"#fff",onclone:d=>{d.getElementById("pdfBox").style.left="0"}});
-    const ch=m.w*cv.height/cv.width,PH=m.ph||Math.max(ch+2*m.mg,40),{jsPDF}=window.jspdf;
-    const pdf=new jsPDF({unit:"mm",format:[m.pw,PH],orientation:m.pw>PH?"l":"p"});
-    let w=m.w,h=ch;if(h>PH-2*m.mg){h=PH-2*m.mg;w=h*cv.width/cv.height}
-    pdf.addImage(cv.toDataURL("image/png"),"PNG",m.mg,m.mg,w,h);
-    pdf.save(`Factura-${S.last.number}.pdf`);say("pm","Factura descargada.",1);
-  }catch(e){console.error(e);say("pm","No se pudo generar el PDF (¿sin internet?). Usa Imprimir y elige Guardar como PDF.",0)}
-  finally{if(box)box.remove();renderPreview()}};
+    const cv=await window.html2canvas(box,{scale:3,backgroundColor:"#fff",onclone:d=>{d.getElementById("pdfBox").style.left="0"}}),nombre="Factura-"+S.last.number;
+    if(modo==="png"){const a=document.createElement("a");a.href=cv.toDataURL("image/png");a.download=nombre+".png";document.body.appendChild(a);a.click();a.remove()}
+    else{
+      const ch=m.w*cv.height/cv.width,PH=m.ph||Math.max(ch+2*m.mg,40),{jsPDF}=window.jspdf;
+      const pdf=new jsPDF({unit:"mm",format:[m.pw,PH],orientation:m.pw>PH?"l":"p"});
+      let w=m.w,h=ch;if(h>PH-2*m.mg){h=PH-2*m.mg;w=h*cv.width/cv.height}
+      pdf.addImage(cv.toDataURL("image/png"),"PNG",m.mg,m.mg,w,h);pdf.save(nombre+".pdf");
+    }
+    say("pm","Factura descargada.",1);
+  }catch(e){console.error(e);say("pm","No se pudo generar el archivo (¿sin internet?). Usa Imprimir y elige Guardar como PDF.",0)}
+  finally{if(box)box.remove();renderPreview()}}
+$("dl").onclick=()=>exportar("pdf");$("dlImg").onclick=()=>exportar("png");
