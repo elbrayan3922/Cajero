@@ -50,7 +50,7 @@ function draft(){const t=tot(),iva=Math.round(t-t/IVA),method=$("pay").value,r=t
 function renderPreview(){
   if(document.activeElement&&document.activeElement.id==="cust")return;
   const issued=!!S.last&&!S.cart.length,d={...(issued?S.last:draft()),stamp:S.frozen||stampNow(),live:!S.frozen};
-  $("pvPaper").className="paper f"+S.fmt;$("pvPaper").innerHTML=ticketHTML(d,!issued,S.fmt);$("prn").disabled=!issued;document.querySelectorAll("#dl,#dlImg").forEach(b=>b.disabled=!issued)}
+  $("pvPaper").className="paper f"+S.fmt;$("pvPaper").innerHTML=ticketHTML(d,!issued,S.fmt);$("prn").disabled=!issued;document.querySelectorAll("#dlPdf,#dlImg").forEach(b=>b.disabled=!issued)}
 $("fmt").value=S.fmt;
 $("fmt").onchange=()=>{S.fmt=$("fmt").value;try{localStorage.setItem("caja-fmt",S.fmt)}catch{}renderPreview()};
 $("pvPaper").oninput=e=>{if(e.target.id==="cust")S.cust=e.target.value};
@@ -65,7 +65,7 @@ setInterval(()=>{const e=$("tkTime");if(e&&!S.frozen)e.textContent=stampNow()},1
 const H2C="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js",JSPDF="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
 const MM={"80":{pw:80,mg:4,w:72},"58":{pw:58,mg:4,w:50},"mc":{pw:139.7,ph:215.9,mg:8,w:123.7},"carta":{pw:215.9,ph:279.4,mg:12,w:191.9},"a4":{pw:210,ph:297,mg:12,w:186}};
 const loadJS=(src,ok)=>new Promise((res,rej)=>{if(ok())return res();const s=document.createElement("script");s.src=src;s.onload=res;s.onerror=()=>rej(new Error("No cargó "+src));document.head.appendChild(s)});
-const setDl=v=>document.querySelectorAll("#dl,#dlImg").forEach(b=>b.disabled=v);
+const setDl=v=>document.querySelectorAll("#dlPdf,#dlImg").forEach(b=>b.disabled=v);
 async function exportar(modo){ // "pdf" o "png"
   if(!S.last)return;
   S.frozen=S.frozen||stampNow();renderPreview();setDl(true);say("pm",modo==="pdf"?"Generando PDF...":"Generando imagen...",1);
@@ -87,4 +87,4 @@ async function exportar(modo){ // "pdf" o "png"
     say("pm","Factura descargada.",1);
   }catch(e){console.error(e);say("pm","No se pudo generar el archivo (¿sin internet?). Usa Imprimir y elige Guardar como PDF.",0)}
   finally{if(box)box.remove();renderPreview()}}
-$("dl").onclick=()=>exportar("pdf");$("dlImg").onclick=()=>exportar("png");
+$("dlPdf").onclick=()=>exportar("pdf");$("dlImg").onclick=()=>exportar("png");
