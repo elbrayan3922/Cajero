@@ -1,0 +1,47 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+    // CAMBIAR: mismo correo que ADMIN en caja.html
+    function isAdmin() { return request.auth != null && request.auth.token.email_verified == true && request.auth.token.email == 'elbrayan3922@gmail.com'; }
+    function em() { return request.auth.token.email; }
+    function udoc() { return /databases/$(db)/documents/users/$(em()); }
+    function ok() { return isAdmin() || (request.auth != null && request.auth.token.email_verified == true && exists(udoc()) && get(udoc()).data.active == true); }
+    function isCaja() { return isAdmin() || (ok() && get(udoc()).data.role == 'caja'); }
+    function canInv() { return isAdmin() || (ok() && get(udoc()).data.role == 'inventario' && get(udoc()).data.invOpen == true); }
+    function canArq() { return isAdmin() || (ok() && get(udoc()).data.role == 'caja' && get(udoc()).data.arqOpen == true); }
+
+    // El stock solo baja si, en la misma transacción, se crea una factura que lo respalda.
+    function sale(p) {
+      let d = request.resource.data;
+      return d.diff(resource.data).affectedKeys().hasOnly(['stock', 'lastInv'])
+        && d.stock >= 0 && d.stock < resource.data.stock
+        && getAfter(/databases/$(db)/documents/invoices/$(d.lastInv)).data.lines[p] == resource.data.stock - d.stock;
+    }
+
+    match /users/{e} {
+      allow read: if isAdmin() || (request.auth != null && request.auth.token.email == e);
+      allow write: if isAdmin();
+    }
+    match /products/{p} {
+      allow read: if ok();
+      allow create: if canInv();
+      allow update: if canInv() || (isCaja() && sale(p));
+      allow delete: if isAdmin();
+    }
+    match /invoices/{i} {
+      allow read: if ok();
+      allow create: if isCaja() && request.resource.data.number == i && request.resource.data.cashier == em();
+      allow update, delete: if false;
+    }
+    match /counters/{c} {
+      allow read: if ok();
+      allow create: if isCaja() && request.resource.data.last == 1;
+      allow update: if isCaja() && request.resource.data.last == resource.data.last + 1;
+    }
+    match /cuts/{c} {
+      allow read: if ok();
+      allow create: if canArq() && request.resource.data.cashier == em();
+      allow update, delete: if false;
+    }
+  }
+}
